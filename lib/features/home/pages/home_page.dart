@@ -1,6 +1,7 @@
 import 'package:cantwait28/features/add/page/add_page.dart';
 import 'package:cantwait28/features/home/cubit/home_cubit.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cantwait28/models/item_model.dart';
+import 'package:cantwait28/repositories/items_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -39,11 +40,12 @@ class _HomePageBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => HomeCubit()..start(),
+      create: (context) => HomeCubit(ItemsRepository())..start(),
       child: BlocBuilder<HomeCubit, HomeState>(
         builder: (context, state) {
-          final docs = state.items?.docs;
-          if (docs == null) {
+          // ignore: non_constant_identifier_names
+          final itemModels = state.items;
+          if (itemModels.isEmpty) {
             return const SizedBox.shrink();
           }
           return ListView(
@@ -51,9 +53,9 @@ class _HomePageBody extends StatelessWidget {
               vertical: 20,
             ),
             children: [
-              for (final doc in docs)
+              for (final itemModel in itemModels)
                 Dismissible(
-                  key: ValueKey(doc.id),
+                  key: ValueKey(itemModel.id),
                   background: const DecoratedBox(
                     decoration: BoxDecoration(
                       color: Colors.red,
@@ -73,10 +75,10 @@ class _HomePageBody extends StatelessWidget {
                     return direction == DismissDirection.endToStart;
                   },
                   onDismissed: (direction) {
-                    context.read<HomeCubit>().remove(documentID: doc.id);
+                    context.read<HomeCubit>().remove(documentID: itemModel.id);
                   },
                   child: _ListViewItem(
-                    document: doc,
+                    itemModel: itemModel,
                   ),
                 ),
             ],
@@ -90,10 +92,10 @@ class _HomePageBody extends StatelessWidget {
 class _ListViewItem extends StatelessWidget {
   const _ListViewItem({
     Key? key,
-    required this.document,
+    required this.itemModel,
   }) : super(key: key);
 
-  final QueryDocumentSnapshot<Map<String, dynamic>> document;
+  final ItemModel itemModel;
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +116,7 @@ class _ListViewItem extends StatelessWidget {
                 color: Colors.black12,
                 image: DecorationImage(
                   image: NetworkImage(
-                    document['image_url'],
+                    itemModel.imageURL,
                   ),
                   fit: BoxFit.cover,
                 ),
@@ -130,7 +132,7 @@ class _ListViewItem extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
-                          document['title'],
+                          itemModel.title,
                           style: const TextStyle(
                             fontSize: 20.0,
                             fontWeight: FontWeight.bold,
@@ -138,9 +140,7 @@ class _ListViewItem extends StatelessWidget {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          (document['release_date'] as Timestamp)
-                              .toDate()
-                              .toString(),
+                          itemModel.relaseDate.toString(),
                         ),
                       ],
                     ),
@@ -153,15 +153,15 @@ class _ListViewItem extends StatelessWidget {
                   margin: const EdgeInsets.all(10),
                   padding: const EdgeInsets.all(10),
                   child: Column(
-                    children: const [
+                    children: [
                       Text(
-                        '0',
-                        style: TextStyle(
+                        itemModel.daysLeft(),
+                        style: const TextStyle(
                           fontSize: 20.0,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Text('days left'),
+                      const Text('days left'),
                     ],
                   ),
                 ),
